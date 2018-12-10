@@ -1,9 +1,16 @@
+import yaml
+
+
 class ValidationError(Exception):
     '''Error for validations when validation is failed'''
     pass
 
 
 class Options:
+    '''
+    Helper class which imitates dictionary with options but has some
+    handy methods like option validation and conversion.
+    '''
 
     def __init__(self,
                  options: dict,
@@ -68,6 +75,12 @@ class Options:
 
 
 class CombinedOptions(Options):
+    '''
+    Helper class which combines several Options objects into one. If options
+    interlap the one to be returned is defined by 'priority'.
+    Apart from that it is a normal Options object.
+    '''
+
     def __init__(self,
                  options: dict,
                  priority: str = None,
@@ -137,3 +150,12 @@ def validate_in(supported, msg=None):
         'of: {supported}'
 
     return validate
+
+
+def yaml_to_dict_convertor(option: str or dict):
+    '''convert yaml string or dict to dict'''
+
+    if type(option) is dict:
+        return option
+    elif type(option) is str:
+        return yaml.load(option)

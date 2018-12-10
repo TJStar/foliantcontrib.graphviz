@@ -2,15 +2,13 @@
 GraphViz diagrams preprocessor for Foliant documenation authoring tool.
 '''
 
-import re
-
-from pathlib import Path
+from pathlib import Path, PosixPath
 from hashlib import md5
 from subprocess import run, PIPE, STDOUT, CalledProcessError
-from typing import Dict
 from foliant.preprocessors.base import BasePreprocessor
 
-from .combined_options import Options, CombinedOptions, validate_in
+from .combined_options import (Options, CombinedOptions, validate_in,
+                               yaml_to_dict_convertor)
 
 OptionValue = int or float or bool or str
 
@@ -20,7 +18,8 @@ class Preprocessor(BasePreprocessor):
         'cache_dir': Path('.diagramscache'),
         'graphviz_path': 'dot',
         'engine': 'dot',
-        'format': 'png'
+        'format': 'png',
+        'params': {}
     }
     tags = ('graphviz',)
     supported_engines = ('circo', 'dot', 'fdp', 'neato', 'osage',
@@ -39,37 +38,30 @@ class Preprocessor(BasePreprocessor):
 
         self.logger.debug(f'Preprocessor inited: {self.__dict__}')
 
-    def _get_command(
-            self,
-            options: CombinedOptions,
-            diagram_src_path: Path
-        ) -> str:
-        '''Generate the image generation command. Options from the config definition are passed
-        as command options (``caption`` and ``engine`` options are omitted).
+    def _get_command(self,
+                     options: CombinedOptions,
+                     diagram_src_path: PosixPath,
+                     diagram_path: PosixPath) -> str:
+        '''Generate the image generation command.
 
-        :param options: Options extracted from the diagram definition
+        :param options: a CombinedOptions object with tag and config options
         :param diagram_src_path: Path to the diagram source file
+        :param diagram_src_path: Path to the diagram output file
 
         :returns: Complete image generation command
         '''
 
         components = [options['graphviz_path']]
 
-        for option_name, option_value in options.items():
-            if option_name in ('caption', 'engine'):
-                continue
+        components.append(f'-T{options["format"]}')
+        components.append(f'-K{options["engine"]}')
+        components.append(f'-o {diagram_path}')
 
-            elif option_value is True:
-                components.append(f'-{option_name}')
-
-            elif option_name == 'format':
-                components.append(f'-T{option_value}')
-
-            elif option_name == 'engine':
-                components.append(f'-K{option_value}')
-
+        for param_name, param_value in options['params'].items():
+            if param_value is True:
+                components.append(f'-{param_name}')
             else:
-                components.append(f'-{option_name} {option_value}')
+                components.append(f'-{param_name}={param_value}')
 
         components.append(str(diagram_src_path))
 
@@ -99,7 +91,8 @@ class Preprocessor(BasePreprocessor):
             '''
             body = block.group('body')
             tag_options = Options(self.get_options(block.group('options')),
-                                  validators={'engine': validate_in(self.supported_engines)})
+                                  validators={'engine': validate_in(self.supported_engines)},
+                                  convertors={'params': yaml_to_dict_convertor})
             options = CombinedOptions({'config': self.options,
                                        'tag': tag_options},
                                       priority='tag')
@@ -109,11 +102,9 @@ class Preprocessor(BasePreprocessor):
             body_hash = md5(f'{body}'.encode())
             body_hash.update(str(options.options).encode())
 
-            diagram_src_path = self._cache_path / 'graphviz' / f'{body_hash.hexdigest()}.diag'
+            diagram_src_path = self._cache_path / 'graphviz' / f'{body_hash.hexdigest()}.gv'
 
             self.logger.debug(f'Diagram definition file path: {diagram_src_path}')
-
-            params = self.options.get('params', {})
 
             diagram_path = diagram_src_path.with_suffix(f'.{options["format"]}')
 
@@ -134,7 +125,7 @@ class Preprocessor(BasePreprocessor):
                 self.logger.debug(f'Diagram definition written into the file')
 
             try:
-                command = self._get_command(options, diagram_src_path)
+                command = self._get_command(options, diagram_src_path, diagram_path)
                 self.logger.debug(f'Constructed command: {command}')
                 run(command, shell=True, check=True, stdout=PIPE, stderr=STDOUT)
 

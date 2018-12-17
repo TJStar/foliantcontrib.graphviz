@@ -69,14 +69,16 @@ Here’s a diagram:
 
 You can set any parameters in the tag options. Tag options have priority over the config options so you can override some values for specific diagrams while having the default ones set up in the config.
 
-Tags also have an exclusive `caption` option — the markdown caption of the diagram image.
+Tags also have two exclusive options: `caption` option — the markdown caption of the diagram image and `src` — path relative to foliant **src** directory to diagram source.
+
+> If `src` tag option is supplied, tag body is ignored. Diagram source is loaded from external file.
 
 ```markdown
 Diagram with a caption:
 
 <<graphviz caption="Deployment diagram"
-           params="Earrowsize: 0.5">
-    a -> b
+           params="Earrowsize: 0.5"
+           src="diags/sample.gv">
 </graphviz>
 ```
 

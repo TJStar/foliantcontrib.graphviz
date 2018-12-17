@@ -3,6 +3,7 @@ GraphViz diagrams preprocessor for Foliant documenation authoring tool.
 '''
 
 from pathlib import Path, PosixPath
+from shutil import copyfile
 from hashlib import md5
 from subprocess import run, PIPE, STDOUT, CalledProcessError
 from foliant.preprocessors.base import BasePreprocessor
@@ -119,10 +120,14 @@ class Preprocessor(BasePreprocessor):
 
             diagram_src_path.parent.mkdir(parents=True, exist_ok=True)
 
-            with open(diagram_src_path, 'w', encoding='utf8') as diagram_src_file:
-                diagram_src_file.write(body)
+            if 'src' in options:
+                copyfile(self.working_dir / options['src'], diagram_src_path)
+                self.logger.debug(f'Diagram defined in external file. Copied into cache folder')
+            else:
+                with open(diagram_src_path, 'w', encoding='utf8') as diagram_src_file:
+                    diagram_src_file.write(body)
 
-                self.logger.debug(f'Diagram definition written into the file')
+                    self.logger.debug(f'Diagram definition written into the file')
 
             try:
                 command = self._get_command(options, diagram_src_path, diagram_path)

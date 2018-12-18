@@ -90,13 +90,17 @@ class Preprocessor(BasePreprocessor):
 
             :returns: Image ref
             '''
-            body = block.group('body')
             tag_options = Options(self.get_options(block.group('options')),
                                   validators={'engine': validate_in(self.supported_engines)},
                                   convertors={'params': yaml_to_dict_convertor})
             options = CombinedOptions({'config': self.options,
                                        'tag': tag_options},
                                       priority='tag')
+            if 'src' in options:
+                with open(self.working_dir / options['src'], 'r') as f:
+                    body = f.read()
+            else:
+                body = block.group('body')
 
             self.logger.debug(f'Processing GraphViz diagram, options: {options}, body: {body}')
 
@@ -120,14 +124,10 @@ class Preprocessor(BasePreprocessor):
 
             diagram_src_path.parent.mkdir(parents=True, exist_ok=True)
 
-            if 'src' in options:
-                copyfile(self.working_dir / options['src'], diagram_src_path)
-                self.logger.debug(f'Diagram defined in external file. Copied into cache folder')
-            else:
-                with open(diagram_src_path, 'w', encoding='utf8') as diagram_src_file:
-                    diagram_src_file.write(body)
+            with open(diagram_src_path, 'w', encoding='utf8') as diagram_src_file:
+                diagram_src_file.write(body)
 
-                    self.logger.debug(f'Diagram definition written into the file')
+                self.logger.debug(f'Diagram definition written into the file')
 
             try:
                 command = self._get_command(options, diagram_src_path, diagram_path)

@@ -101,7 +101,8 @@ class Preprocessor(BasePreprocessor):
                     with open(self.working_dir / options['src'], 'r') as f:
                         body = f.read()
                 except:
-                    output(f"Cannot open file {self.working_dir / options['src']}, skipping")
+                    output(f"Cannot open file {self.working_dir / options['src']}, skipping",
+                           quiet=self.quiet)
                     return ''
             else:
                 body = block.group('body')

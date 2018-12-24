@@ -15,7 +15,7 @@ setup(
     name='foliantcontrib.graphviz',
     description=SHORT_DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    version='1.0.1',
+    version='1.0.2',
     author='Daniil Minukhin',
     author_email='ddddsa@gmail.com',
     url='https://github.com/foliant-docs/foliantcontrib.graphviz',
@@ -23,7 +23,7 @@ setup(
     license='MIT',
     platforms='any',
     install_requires=[
-        'foliant>=1.0.4'
+        'foliant>=1.0.8'
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

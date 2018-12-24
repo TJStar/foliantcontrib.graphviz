@@ -3,10 +3,10 @@ GraphViz diagrams preprocessor for Foliant documenation authoring tool.
 '''
 
 from pathlib import Path, PosixPath
-from shutil import copyfile
 from hashlib import md5
 from subprocess import run, PIPE, STDOUT, CalledProcessError
 from foliant.preprocessors.base import BasePreprocessor
+from foliant.utils import output
 
 from .combined_options import (Options, CombinedOptions, validate_in,
                                yaml_to_dict_convertor)
@@ -97,8 +97,12 @@ class Preprocessor(BasePreprocessor):
                                        'tag': tag_options},
                                       priority='tag')
             if 'src' in options:
-                with open(self.working_dir / options['src'], 'r') as f:
-                    body = f.read()
+                try:
+                    with open(self.working_dir / options['src'], 'r') as f:
+                        body = f.read()
+                except:
+                    output(f"Cannot open file {self.working_dir / options['src']}, skipping")
+                    return ''
             else:
                 body = block.group('body')
 

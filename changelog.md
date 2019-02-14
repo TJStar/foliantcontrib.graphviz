@@ -1,3 +1,7 @@
+# 1.0.3
+
+-    Moved combined_options out
+
 # 1.0.2
 
 -    Fixed external diagrams not reloading on change.

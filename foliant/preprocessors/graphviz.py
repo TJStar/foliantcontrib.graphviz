@@ -8,8 +8,10 @@ from subprocess import run, PIPE, STDOUT, CalledProcessError
 from foliant.preprocessors.base import BasePreprocessor
 from foliant.utils import output
 
-from .combined_options import (Options, CombinedOptions, validate_in,
-                               yaml_to_dict_convertor)
+from foliant.preprocessors.utils.combined_options import (Options,
+                                                          CombinedOptions,
+                                                          validate_in,
+                                                          yaml_to_dict_convertor)
 
 OptionValue = int or float or bool or str
 

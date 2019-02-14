@@ -15,11 +15,11 @@ setup(
     name='foliantcontrib.graphviz',
     description=SHORT_DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    version='1.0.2',
+    version='1.0.3',
     author='Daniil Minukhin',
     author_email='ddddsa@gmail.com',
     url='https://github.com/foliant-docs/foliantcontrib.graphviz',
-    packages=['foliant.preprocessors.graphviz'],
+    packages=['foliant.preprocessors'],
     license='MIT',
     platforms='any',
     install_requires=[

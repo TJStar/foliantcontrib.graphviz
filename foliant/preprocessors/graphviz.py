@@ -11,7 +11,8 @@ from foliant.utils import output
 from foliant.preprocessors.utils.combined_options import (Options,
                                                           CombinedOptions,
                                                           validate_in,
-                                                          yaml_to_dict_convertor)
+                                                          yaml_to_dict_convertor,
+                                                          boolean_convertor)
 
 OptionValue = int or float or bool or str
 
@@ -19,6 +20,7 @@ OptionValue = int or float or bool or str
 class Preprocessor(BasePreprocessor):
     defaults = {
         'cache_dir': Path('.diagramscache'),
+        'as_image': True,
         'graphviz_path': 'dot',
         'engine': 'dot',
         'format': 'png',
@@ -70,6 +72,14 @@ class Preprocessor(BasePreprocessor):
 
         return ' '.join(components)
 
+    def _get_result(self, diagram_path: PosixPath, config: CombinedOptions):
+        '''Get either image ref or raw image code depending on as_image option'''
+        if config['as_image']:
+            return f'![{config.get("caption", "")}]({diagram_path.absolute().as_posix()})'
+        else:
+            with open(diagram_path, 'r') as f:
+                return f.read()
+
     def process_diagrams(self, content: str) -> str:
         '''Find diagram definitions and replace them with image refs.
 
@@ -94,7 +104,8 @@ class Preprocessor(BasePreprocessor):
             '''
             tag_options = Options(self.get_options(block.group('options')),
                                   validators={'engine': validate_in(self.supported_engines)},
-                                  convertors={'params': yaml_to_dict_convertor})
+                                  convertors={'params': yaml_to_dict_convertor,
+                                              'as_image': boolean_convertor})
             options = CombinedOptions({'config': self.options,
                                        'tag': tag_options},
                                       priority='tag')
@@ -122,12 +133,10 @@ class Preprocessor(BasePreprocessor):
 
             self.logger.debug(f'Diagram image path: {diagram_path}')
 
-            img_ref = f'![{options.get("caption", "")}]({diagram_path.absolute().as_posix()})'
-
             if diagram_path.exists():
                 self.logger.debug('Diagram image found in cache')
 
-                return img_ref
+                return self._get_result(diagram_path, options)
 
             diagram_src_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -150,7 +159,7 @@ class Preprocessor(BasePreprocessor):
                     f'Processing of GraphViz diagram {diagram_src_path} failed: {exception.output.decode()}'
                 )
 
-            return img_ref
+            return self._get_result(diagram_path, options)
 
         return self.pattern.sub(_sub, content)
 

@@ -1,3 +1,7 @@
+# 1.0.5
+
+-    Added as_image option.
+
 # 1.0.4
 
 -    Moved combined_options out

@@ -15,7 +15,7 @@ setup(
     name='foliantcontrib.graphviz',
     description=SHORT_DESCRIPTION,
     long_description=LONG_DESCRIPTION,
-    version='1.0.6',
+    version='1.1.0',
     author='Daniil Minukhin',
     author_email='ddddsa@gmail.com',
     url='https://github.com/foliant-docs/foliantcontrib.graphviz',

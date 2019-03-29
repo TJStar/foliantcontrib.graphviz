@@ -2,6 +2,8 @@
 GraphViz diagrams preprocessor for Foliant documenation authoring tool.
 '''
 
+import traceback
+
 from pathlib import Path, PosixPath
 from hashlib import md5
 from subprocess import run, PIPE, STDOUT, CalledProcessError
@@ -80,7 +82,7 @@ class Preprocessor(BasePreprocessor):
             with open(diagram_path, 'r') as f:
                 return f.read()
 
-    def process_diagrams(self, content: str) -> str:
+    def process_diagrams(self, content_file: PosixPath) -> str:
         '''Find diagram definitions and replace them with image refs.
 
         The definitions are fed to GraphViz processor that converts them into images.
@@ -111,11 +113,13 @@ class Preprocessor(BasePreprocessor):
                                       priority='tag')
             if 'src' in options:
                 try:
-                    with open(self.working_dir / options['src'], 'r') as f:
+                    with open(content_file.parent / options['src'], encoding='utf8') as f:
                         body = f.read()
-                except:
+                except Exception as e:
                     output(f"Cannot open file {self.working_dir / options['src']}, skipping",
                            quiet=self.quiet)
+                    info = traceback.format_exc()
+                    self.logger.error(f'Cannot open diagram file:\n\n{info}')
                     return ''
             else:
                 body = block.group('body')
@@ -153,13 +157,16 @@ class Preprocessor(BasePreprocessor):
                 self.logger.debug(f'Diagram image saved')
 
             except CalledProcessError as exception:
-                self.logger.error(str(exception))
+                info = traceback.format_exc()
+                self.logger.error(f'Processing of GraphViz diagram failed:\n\n{info}')
 
                 raise RuntimeError(
                     f'Processing of GraphViz diagram {diagram_src_path} failed: {exception.output.decode()}'
                 )
-
             return self._get_result(diagram_path, options)
+
+        with open(content_file, encoding='utf8') as f:
+            content = f.read()
 
         return self.pattern.sub(_sub, content)
 
@@ -167,10 +174,10 @@ class Preprocessor(BasePreprocessor):
         self.logger.info('Applying preprocessor')
 
         for markdown_file_path in self.working_dir.rglob('*.md'):
-            with open(markdown_file_path, encoding='utf8') as markdown_file:
-                content = markdown_file.read()
+            # with open(markdown_file_path, encoding='utf8') as markdown_file:
+            #     content = markdown_file.read()
 
-            processed = self.process_diagrams(content)
+            processed = self.process_diagrams(markdown_file_path)
 
             with open(markdown_file_path, 'w', encoding='utf8') as markdown_file:
                 markdown_file.write(processed)

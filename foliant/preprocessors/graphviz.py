@@ -2,6 +2,8 @@
 GraphViz diagrams preprocessor for Foliant documenation authoring tool.
 '''
 
+import re
+
 from pathlib import Path, PosixPath
 from hashlib import md5
 from subprocess import run, PIPE, STDOUT, CalledProcessError
@@ -24,7 +26,8 @@ class Preprocessor(BasePreprocessor):
         'graphviz_path': 'dot',
         'engine': 'dot',
         'format': 'png',
-        'params': {}
+        'params': {},
+        'fix_svg_size': True,
     }
     tags = ('graphviz',)
     supported_engines = ('circo', 'dot', 'fdp', 'neato', 'osage',
@@ -79,6 +82,21 @@ class Preprocessor(BasePreprocessor):
         else:
             with open(diagram_path, 'r') as f:
                 return f.read()
+
+    def _fix_svg_size(self, svg_path: PosixPath):
+        '''insert 100% instead of hardcoded height and width attributes'''
+        p_width = r'(<svg .*width=").+?(")'
+        p_height = r'(<svg .*height=").+?(")'
+
+        with open(svg_path, encoding='utf8') as f:
+            content = f.read()
+
+        result = re.sub(p_width, r'\g<1>100%\g<2>', content)
+        result = re.sub(p_height, r'\g<1>100%\g<2>', result)
+
+        with open(svg_path, 'w', encoding='utf8') as f:
+            f.write(result)
+
 
     def process_diagrams(self, content: str) -> str:
         '''Find diagram definitions and replace them with image refs.
@@ -149,6 +167,9 @@ class Preprocessor(BasePreprocessor):
                 command = self._get_command(options, diagram_src_path, diagram_path)
                 self.logger.debug(f'Constructed command: {command}')
                 run(command, shell=True, check=True, stdout=PIPE, stderr=STDOUT)
+
+                if options['format'] == 'svg' and options['fix_svg_size']:
+                    self._fix_svg_size(diagram_path)
 
                 self.logger.debug(f'Diagram image saved')
 

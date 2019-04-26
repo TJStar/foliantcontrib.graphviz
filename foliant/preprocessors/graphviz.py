@@ -123,7 +123,8 @@ class Preprocessor(BasePreprocessor):
             tag_options = Options(self.get_options(block.group('options')),
                                   validators={'engine': validate_in(self.supported_engines)},
                                   convertors={'params': yaml_to_dict_convertor,
-                                              'as_image': boolean_convertor})
+                                              'as_image': boolean_convertor,
+                                              'fix_svg_size': boolean_convertor})
             options = CombinedOptions({'config': self.options,
                                        'tag': tag_options},
                                       priority='tag')

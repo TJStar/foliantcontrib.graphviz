@@ -1,3 +1,8 @@
+# 1.1.1
+
+-    Remove src param. (Use includes instead)
+-    Allow separate tags fail. Preprocessor would issue warning and continue work.
+
 # 1.1.0
 
 -    Paths from src attribute now are relative to current file (breaks backward compatibility)

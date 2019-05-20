@@ -2,25 +2,24 @@
 GraphViz diagrams preprocessor for Foliant documenation authoring tool.
 '''
 
-import traceback
 import re
 
 from pathlib import Path, PosixPath
 from hashlib import md5
 from subprocess import run, PIPE, STDOUT, CalledProcessError
-from foliant.preprocessors.base import BasePreprocessor
-from foliant.utils import output
 
 from foliant.preprocessors.utils.combined_options import (Options,
                                                           CombinedOptions,
                                                           validate_in,
                                                           yaml_to_dict_convertor,
                                                           boolean_convertor)
+from foliant.preprocessors.utils.preprocessor_ext import (BasePreprocessorExt,
+                                                          allow_fail)
 
 OptionValue = int or float or bool or str
 
 
-class Preprocessor(BasePreprocessor):
+class Preprocessor(BasePreprocessorExt):
     defaults = {
         'cache_dir': Path('.diagramscache'),
         'as_image': True,
@@ -98,108 +97,70 @@ class Preprocessor(BasePreprocessor):
         with open(svg_path, 'w', encoding='utf8') as f:
             f.write(result)
 
-    def process_diagrams(self, content_file: PosixPath) -> str:
-        '''Find diagram definitions and replace them with image refs.
-
-        The definitions are fed to GraphViz processor that converts them into images.
-
-        :param content: Markdown content
-
-        :returns: Markdown content with diagrams definitions replaced with image refs
+    @allow_fail('Error while processing graphviz tag.')
+    def _process_diagrams(self, block) -> str:
         '''
+        Process graphviz tag.
+        Save GraphViz diagram body to .gv file, generate an image from it,
+        and return the image ref.
 
-        def _sub(block) -> str:
-            '''Save GraphViz diagram body to .gv file, generate an image from it,
-            and return the image ref.
+        If the image for this diagram has already been generated, the existing version
+        is used.
 
-            If the image for this diagram has already been generated, the existing version
-            is used.
+        :returns: Image ref
+        '''
+        tag_options = Options(self.get_options(block.group('options')),
+                              validators={'engine': validate_in(self.supported_engines)},
+                              convertors={'params': yaml_to_dict_convertor,
+                                          'as_image': boolean_convertor,
+                                          'fix_svg_size': boolean_convertor})
+        options = CombinedOptions({'config': self.options,
+                                   'tag': tag_options},
+                                  priority='tag')
+        body = block.group('body')
 
-            :param options: Options extracted from the diagram definition
-            :param body: GraphViz diagram body
+        self.logger.debug(f'Processing GraphViz diagram, options: {options}, body: {body}')
 
-            :returns: Image ref
-            '''
-            tag_options = Options(self.get_options(block.group('options')),
-                                  validators={'engine': validate_in(self.supported_engines)},
-                                  convertors={'params': yaml_to_dict_convertor,
-                                              'as_image': boolean_convertor,
-                                              'fix_svg_size': boolean_convertor})
-            options = CombinedOptions({'config': self.options,
-                                       'tag': tag_options},
-                                      priority='tag')
-            if 'src' in options:
-                try:
-                    with open(content_file.parent / options['src'], encoding='utf8') as f:
-                        body = f.read()
-                except Exception as e:
-                    output(f"Cannot open file {self.working_dir / options['src']}, skipping",
-                           quiet=self.quiet)
-                    info = traceback.format_exc()
-                    self.logger.error(f'Cannot open diagram file:\n\n{info}')
-                    return ''
-            else:
-                body = block.group('body')
+        body_hash = md5(f'{body}'.encode())
+        body_hash.update(str(options.options).encode())
 
-            self.logger.debug(f'Processing GraphViz diagram, options: {options}, body: {body}')
+        diagram_src_path = self._cache_path / 'graphviz' / f'{body_hash.hexdigest()}.gv'
 
-            body_hash = md5(f'{body}'.encode())
-            body_hash.update(str(options.options).encode())
+        self.logger.debug(f'Diagram definition file path: {diagram_src_path}')
 
-            diagram_src_path = self._cache_path / 'graphviz' / f'{body_hash.hexdigest()}.gv'
+        diagram_path = diagram_src_path.with_suffix(f'.{options["format"]}')
 
-            self.logger.debug(f'Diagram definition file path: {diagram_src_path}')
+        self.logger.debug(f'Diagram image path: {diagram_path}')
 
-            diagram_path = diagram_src_path.with_suffix(f'.{options["format"]}')
+        if diagram_path.exists():
+            self.logger.debug('Diagram image found in cache')
 
-            self.logger.debug(f'Diagram image path: {diagram_path}')
-
-            if diagram_path.exists():
-                self.logger.debug('Diagram image found in cache')
-
-                return self._get_result(diagram_path, options)
-
-            diagram_src_path.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(diagram_src_path, 'w', encoding='utf8') as diagram_src_file:
-                diagram_src_file.write(body)
-
-                self.logger.debug(f'Diagram definition written into the file')
-
-            try:
-                command = self._get_command(options, diagram_src_path, diagram_path)
-                self.logger.debug(f'Constructed command: {command}')
-                run(command, shell=True, check=True, stdout=PIPE, stderr=STDOUT)
-
-                if options['format'] == 'svg' and options['fix_svg_size']:
-                    self._fix_svg_size(diagram_path)
-
-                self.logger.debug(f'Diagram image saved')
-
-            except CalledProcessError as exception:
-                info = traceback.format_exc()
-                self.logger.error(f'Processing of GraphViz diagram failed:\n\n{info}')
-
-                raise RuntimeError(
-                    f'Processing of GraphViz diagram {diagram_src_path} failed: {exception.output.decode()}'
-                )
             return self._get_result(diagram_path, options)
 
-        with open(content_file, encoding='utf8') as f:
-            content = f.read()
+        diagram_src_path.parent.mkdir(parents=True, exist_ok=True)
 
-        return self.pattern.sub(_sub, content)
+        with open(diagram_src_path, 'w', encoding='utf8') as diagram_src_file:
+            diagram_src_file.write(body)
+
+            self.logger.debug(f'Diagram definition written into the file')
+
+        try:
+            command = self._get_command(options, diagram_src_path, diagram_path)
+            self.logger.debug(f'Constructed command: {command}')
+            run(command, shell=True, check=True, stdout=PIPE, stderr=STDOUT)
+
+            if options['format'] == 'svg' and options['fix_svg_size']:
+                self._fix_svg_size(diagram_path)
+
+            self.logger.debug(f'Diagram image saved')
+
+        except CalledProcessError as e:
+            self._warning('Processing of GraphViz diagram failed.',
+                          context=self.get_tag_context(block),
+                          error=e)
+            return block.group(0)
+        return self._get_result(diagram_path, options)
 
     def apply(self):
-        self.logger.info('Applying preprocessor')
-
-        for markdown_file_path in self.working_dir.rglob('*.md'):
-            # with open(markdown_file_path, encoding='utf8') as markdown_file:
-            #     content = markdown_file.read()
-
-            processed = self.process_diagrams(markdown_file_path)
-
-            with open(markdown_file_path, 'w', encoding='utf8') as markdown_file:
-                markdown_file.write(processed)
-
+        self._process_tags_for_all_files(self._process_diagrams)
         self.logger.info('Preprocessor applied')

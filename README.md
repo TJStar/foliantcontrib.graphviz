@@ -1,3 +1,5 @@
+![](https://img.shields.io/pypi/v/foliantcontrib.graphviz.svg)
+
 # Graphviz Diagrams Preprocessor for Foliant
 
 [Graphviz](http://plantuml.com/) is an open source graph visualization tool. This preprocessor converts Graphviz diagram definitions in the source and converts them into images on the fly during project build.

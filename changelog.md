@@ -1,4 +1,4 @@
-# 1.1.2
+# 1.1.3
 
 -    Fix: as_image takes effect only with `svg` format.
 

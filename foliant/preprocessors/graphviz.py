@@ -77,9 +77,9 @@ class Preprocessor(BasePreprocessorExt):
 
     def _get_result(self, diagram_path: PosixPath, config: CombinedOptions):
         '''Get either image ref or raw image code depending on as_image option'''
-        if config['as_image']:
+        if config['format'] != 'svg' or config['as_image']:
             return f'![{config.get("caption", "")}]({diagram_path.absolute().as_posix()})'
-        elif not config['as_image'] and config['format'] == 'svg':
+        else:
             with open(diagram_path, 'r') as f:
                 return f.read()
 

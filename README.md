@@ -1,4 +1,4 @@
-![](https://img.shields.io/pypi/v/foliantcontrib.graphviz.svg)
+[![](https://img.shields.io/pypi/v/foliantcontrib.graphviz.svg)](https://pypi.org/project/foliantcontrib.graphviz/) [![](https://img.shields.io/github/v/release/foliant-docs/foliantcontrib.graphviz?label=github)](https://github.com/foliant-docs/foliantcontrib.graphviz)
 
 # Graphviz Diagrams Preprocessor for Foliant
 

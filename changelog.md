@@ -1,3 +1,7 @@
+# 1.1.2
+
+-    Fix: as_image takes effect only with `svg` format.
+
 # 1.1.1
 
 -    Remove src param. (Use includes instead)

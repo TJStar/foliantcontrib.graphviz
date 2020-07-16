@@ -63,12 +63,12 @@ preprocessors:
 
 ## Usage
 
-To insert a diagram definition in your Markdown source, enclose it between `<<graphviz>...</graphviz>` tags:
+To insert a diagram definition in your Markdown source, enclose it between `<graphviz>...</graphviz>` tags:
 
 ```markdown
 Here’s a diagram:
 
-<<graphviz>
+<graphviz>
     a -> b
 </graphviz>
 ```
@@ -82,7 +82,7 @@ Tags also have two exclusive options: `caption` option — the markdown caption 
 ```markdown
 Diagram with a caption:
 
-<<graphviz caption="Deployment diagram"
+<graphviz caption="Deployment diagram"
            params="Earrowsize: 0.5"
            src="diags/sample.gv">
 </graphviz>

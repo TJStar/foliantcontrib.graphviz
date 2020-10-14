@@ -81,7 +81,7 @@ class Preprocessor(BasePreprocessorExt):
             return f'![{config.get("caption", "")}]({diagram_path.absolute().as_posix()})'
         else:
             with open(diagram_path, 'r') as f:
-                return f.read()
+                return f'<div>{f.read()}</div>'
 
     def _fix_svg_size(self, svg_path: PosixPath):
         '''insert 100% instead of hardcoded height and width attributes'''

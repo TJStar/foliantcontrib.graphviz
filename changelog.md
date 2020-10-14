@@ -1,3 +1,7 @@
+# 1.1.4
+
+-    Fix: issue with MkDocs: raw svgs are now wrapped in div tag.
+
 # 1.1.3
 
 -    Fix: as_image takes effect only with `svg` format.

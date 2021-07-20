@@ -4,17 +4,18 @@ GraphViz diagrams preprocessor for Foliant documenation authoring tool.
 
 import re
 
-from pathlib import Path, PosixPath
 from hashlib import md5
-from subprocess import run, PIPE, STDOUT, CalledProcessError
+from pathlib import Path
+from pathlib import PosixPath
+from subprocess import PIPE
+from subprocess import run
 
-from foliant.preprocessors.utils.combined_options import (Options,
-                                                          CombinedOptions,
-                                                          validate_in,
-                                                          yaml_to_dict_convertor,
-                                                          boolean_convertor)
-from foliant.preprocessors.utils.preprocessor_ext import (BasePreprocessorExt,
-                                                          allow_fail)
+from foliant.contrib.combined_options import CombinedOptions
+from foliant.contrib.combined_options import Options
+from foliant.contrib.combined_options import boolean_convertor
+from foliant.contrib.combined_options import validate_in
+from foliant.preprocessors.utils.preprocessor_ext import BasePreprocessorExt
+from foliant.preprocessors.utils.preprocessor_ext import allow_fail
 
 OptionValue = int or float or bool or str
 
@@ -111,8 +112,7 @@ class Preprocessor(BasePreprocessorExt):
         '''
         tag_options = Options(self.get_options(block.group('options')),
                               validators={'engine': validate_in(self.supported_engines)},
-                              convertors={'params': yaml_to_dict_convertor,
-                                          'as_image': boolean_convertor,
+                              convertors={'as_image': boolean_convertor,
                                           'fix_svg_size': boolean_convertor})
         options = CombinedOptions({'config': self.options,
                                    'tag': tag_options},
@@ -144,21 +144,19 @@ class Preprocessor(BasePreprocessorExt):
 
             self.logger.debug(f'Diagram definition written into the file')
 
-        try:
-            command = self._get_command(options, diagram_src_path, diagram_path)
-            self.logger.debug(f'Constructed command: {command}')
-            run(command, shell=True, check=True, stdout=PIPE, stderr=STDOUT)
-
-            if options['format'] == 'svg' and options['fix_svg_size']:
-                self._fix_svg_size(diagram_path)
-
-            self.logger.debug(f'Diagram image saved')
-
-        except CalledProcessError as e:
-            self._warning('Processing of GraphViz diagram failed.',
-                          context=self.get_tag_context(block),
-                          error=e)
+        command = self._get_command(options, diagram_src_path, diagram_path)
+        self.logger.debug(f'Constructed command: {command}')
+        result = run(command, shell=True, stdout=PIPE, stderr=PIPE)
+        if result.returncode != 0:
+            self._warning(f'Processing of GraphViz diagram failed:\n{result.stderr.decode()}',
+                          context=self.get_tag_context(block))
             return block.group(0)
+
+        if options['format'] == 'svg' and options['fix_svg_size']:
+            self._fix_svg_size(diagram_path)
+
+        self.logger.debug(f'Diagram image saved')
+
         return self._get_result(diagram_path, options)
 
     def apply(self):

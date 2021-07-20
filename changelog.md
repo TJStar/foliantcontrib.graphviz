@@ -1,3 +1,8 @@
+# 1.1.5
+
+-    New utils module.
+-    Output syntax errors in stdout.
+
 # 1.1.4
 
 -    Fix: issue with MkDocs: raw svgs are now wrapped in div tag.
